@@ -1,0 +1,10 @@
+resources:
+  apps:
+    hello-world-app:
+      # App names must be lowercase alphanumerics + hyphens, unique per workspace.
+      name: "${var.app_name}-${bundle.target}"
+      description: "Minimal FastAPI Hello World app (monitored by a Lakeflow Job)."
+      source_code_path: ../app
+      permissions:
+        - level: CAN_USE
+          service_principal_name: "${var.service_principal_name}"

@@ -1,0 +1,52 @@
+resources:
+  jobs:
+    # 1) Ephemeral install job: installs Playwright + Chromium onto the named cluster.
+    #    Run manually or in CI whenever the cluster was restarted / recreated.
+    install_playwright_job:
+      name: "${bundle.name}-install-playwright-${bundle.target}"
+      tasks:
+        - task_key: install
+          existing_cluster_id: ${resources.clusters.monitoring_cluster.id}
+          notebook_task:
+            notebook_path: ../src/install_playwright.ipynb
+
+    # 2) Monitoring job: Playwright healthcheck against the app URL.
+    monitor_app_job:
+      name: "${bundle.name}-monitor-app-${bundle.target}"
+      parameters:
+        - name: "scope"
+          default: ${resources.secret_scopes.app_oauth_scope.name}
+
+      # Optional: run as a schedule (Quartz cron).
+      schedule:
+        quartz_cron_expression: "${var.schedule_quartz_cron}"
+        timezone_id: "${var.schedule_timezone}"
+        pause_status: UNPAUSED
+
+      max_concurrent_runs: 1
+
+      tasks:
+        - task_key: bootstrap_playwright_runtime
+          existing_cluster_id: ${resources.clusters.monitoring_cluster.id}
+          notebook_task:
+            notebook_path: ../src/install_playwright.ipynb
+
+        - task_key: playwright_healthcheck
+          depends_on:
+            - task_key: bootstrap_playwright_runtime
+          existing_cluster_id: ${resources.clusters.monitoring_cluster.id}
+          notebook_task:
+            notebook_path: ../src/playwright_test.ipynb
+            base_parameters:
+              # Pass the app resource name only; the notebook resolves the full host using workspace config.
+              app_url: "${resources.apps.hello-world-app.name}"
+              scope: "{{job.parameters.scope}}"
+              expected_header_text: "${var.expected_header_text}"
+
+    # 3) Ephemeral "test the test" job: delegates to monitor_app_job.
+    e2e_test_job:
+      name: "${bundle.name}-e2e-${bundle.target}"
+      tasks:
+        - task_key: run_monitor
+          run_job_task:
+            job_id: ${resources.jobs.monitor_app_job.id}

@@ -1,0 +1,9 @@
+# Databricks Apps runtime entrypoint.
+# See "Configure Databricks app execution with app.yaml".
+command:
+  - uvicorn
+  - main:app
+  - --host
+  - 0.0.0.0
+  - --port
+  - "8000"

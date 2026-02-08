@@ -1,0 +1,85 @@
+# Databricks Asset Bundle root config.
+# See: https://docs.databricks.com/gcp/en/dev-tools/bundles/settings
+
+bundle:
+  name: apps_monitoring_lakeflow_jobs
+
+include:
+  - resources/*.yml
+
+# Keep sync small + deterministic when deploying from CI
+sync:
+  exclude:
+    - .git/**
+    - .github/**
+    - .venv/**
+    - "**/__pycache__/**"
+    - ".DS_Store"
+
+# Optional (explicit) workspace layout.
+# By default, bundles deploy to:
+#   /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+# workspace:
+#   root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+
+# Bundle variables are evaluated at deploy time.
+# Override per-target under `targets.<name>.variables`.
+variables:
+
+  # Testing Variables
+
+  expected_header_text:
+    description: "Expected header text contents"
+    default: "Hello World"
+
+  # Services
+
+  app_name:
+    description: "Base name for the Databricks App (lowercase + hyphens). Final name is suffixed with the target."
+    default: "hello-world-app"
+
+  secret_scope_name:
+    description: "Secret scope used for OAuth credentials."
+    default: "app-monitoring-secrets"
+
+  service_principal_name:
+    description: "Service principal name used for app access (must match the service principal created in the workspace)."
+    default: "app-monitoring"
+
+  cluster_name:
+    description: "Base name for the shared, named cluster used by monitoring jobs (suffixed with target)."
+    default: "playwright-monitoring-cluster"
+
+  # Cluster sizing is intentionally minimal; change to match your workspace / policy.
+  spark_version:
+    description: "Databricks Runtime version."
+    default: "16.4.x-scala2.12"
+
+  # NOTE: node_type_id is cloud-specific. Override in your target if needed.
+  # For GCP workspaces, an example might be `n2-standard-4`.
+  # For Azure workspaces, an example might be `Standard_DS3_v2`.
+  # For AWS workspaces, an example might be `t3.medium`.
+  node_type_id:
+    description: "Cluster node type id."
+    default: "Standard_DS3_v2"
+
+  # Run the monitoring job on a schedule (Quartz cron).
+  schedule_quartz_cron:
+    description: "Quartz cron expression for the monitoring job schedule."
+    default: "0 4 * ? * *" # every day at 04:00AM
+
+  schedule_timezone:
+    description: "Timezone for the monitoring job schedule."
+    default: "UTC"
+
+targets:
+  dev:
+    default: true
+    mode: development
+    resources:
+      secret_scopes:
+        app_oauth_scope:
+          name: ${workspace.current_user.short_name}-app-monitoring-secrets
+
+  prod:
+    mode: production
