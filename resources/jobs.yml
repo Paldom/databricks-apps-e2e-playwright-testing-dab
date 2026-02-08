@@ -41,7 +41,8 @@ resources:
               # Pass the app resource name only; the notebook resolves the full host using workspace config.
               app_url: "${resources.apps.hello-world-app.name}"
               scope: "{{job.parameters.scope}}"
-              expected_header_text: "${var.expected_header_text}"
+              api_path: "${var.api_route_path}"
+              expected_api_message: "${var.expected_api_message}"
 
     # 3) Ephemeral "test the test" job: delegates to monitor_app_job.
     e2e_test_job:

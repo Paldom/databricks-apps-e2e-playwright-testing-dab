@@ -4,8 +4,8 @@ E2E monitoring and auto-testing for Databricks Apps: scheduled Playwright test i
 
 This repo is a minimal **Databricks Asset Bundles (DABs)** project that deploys:
 
-1) A **Databricks App** (FastAPI) that returns `<h1>Hello World</h1>`  
-2) A **Lakeflow Job** (Databricks Workflows job) that runs a **Playwright** browser test notebook against the app URL  
+1) A **Databricks App** (FastAPI) with UI (`/`) plus API routes under `/api/*` (including `/api/sample`)  
+2) A **Lakeflow Job** (Databricks Workflows job) that runs a **Playwright** browser test notebook against an app `/api/*` route  
 3) Two extra **ephemeral jobs**:
    - install Playwright + Chromium onto the named cluster from a notebook
    - run an E2E workflow that calls the monitor job via `run_job_task`
@@ -26,7 +26,7 @@ This repo is a minimal **Databricks Asset Bundles (DABs)** project that deploys:
 
 ### 1) Create the service principal and generate OAuth credentials
 
-Set the principal name in `databricks.yml` variable `service_principal_name` (default: `app-monitoring`), then create that principal in the UI.
+Set the principal name in `databricks.yml` variable `service_principal_name` (default in this repo is workspace-specific), then create that principal in the UI.
 
 From the Databricks workspace UI (matching the screenshots):
 
@@ -92,7 +92,7 @@ The install notebook uses `playwright install --with-deps chromium` to install b
 databricks bundle run -t dev monitor_app_job
 ```
 
-`monitor_app_job` now includes a bootstrap task that runs the install notebook before the Playwright healthcheck, so scheduled runs are resilient after cluster restarts.
+`monitor_app_job` now includes a bootstrap task that runs the install notebook before the Playwright healthcheck, so scheduled runs are resilient after cluster restarts. The healthcheck targets `/api/sample` and validates JSON payload fields.
 
 ### 8) Run the E2E wrapper job (calls monitor job)
 
@@ -102,13 +102,21 @@ databricks bundle run -t dev e2e_test_job
 
 ## Important configuration
 
-### App endpoint
+### App endpoint and API route
 
-The monitoring notebook uses a single app identifier parameter:
+The monitoring notebook uses:
 
 - `app_url = ${resources.apps.hello-world-app.name}`
+- `api_path = ${var.api_route_path}` (default: `/api/sample`)
+- `expected_api_message = ${var.expected_api_message}` (default: `Hello from API sample`)
 
-This reuses the app resource name from `resources/app.yml`, so the composed app name is defined in one place. The notebook normalizes this value and composes the full URL as `https://<app_name>-<workspace_host>` by reading the workspace host from SDK/runtime config.
+This reuses the app resource name from `resources/app.yml`, so the composed app name is defined in one place. The notebook resolves the workspace host from `spark.conf.get("spark.databricks.workspaceUrl")` and composes the app URL as `https://<app_name>-<workspace-id>.<shard>.azure.databricksapps.com` for Azure, then appends `api_path`.
+
+Per Databricks local-connect guidance, token-auth connectivity applies only to app routes under `/api/*`, so monitoring intentionally validates `/api/sample` instead of `/`.
+
+Full website/UI access (for example `/`) requires an authenticated browser session cookie such as `__Host-databricksapps`, or an equivalent Playwright storage state (for example `context.storage_state(path="state.json")`). For security reasons, storing/reusing that cookie or storage state in automation is not recommended.
+
+Reference: [Databricks Apps local connect](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/connect-local)
 
 ### Cluster node type (`node_type_id`)
 
@@ -133,6 +141,7 @@ Examples:
   - `client_id` from `dbutils.secrets.get(scope=scope, key="client_id")`
   - `client_secret` from `dbutils.secrets.get(scope=scope, key="client_secret")`
 - The notebook authenticates with `WorkspaceClient(...).config.authenticate()` and uses the returned `Authorization` header for the Playwright request.
+- That `Authorization` header should be used for `/api/*` routes only, not full website/UI pages.
 
 ## CI/CD (GitHub Actions)
 

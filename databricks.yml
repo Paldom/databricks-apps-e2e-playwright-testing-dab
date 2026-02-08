@@ -28,9 +28,13 @@ variables:
 
   # Testing Variables
 
-  expected_header_text:
-    description: "Expected header text contents"
-    default: "Hello World"
+  api_route_path:
+    description: "API route validated by the Playwright monitoring notebook (must start with /api/)."
+    default: "/api/sample"
+
+  expected_api_message:
+    description: "Expected JSON message value returned by the monitored API route."
+    default: "Hello from API sample"
 
   # Services
 
@@ -44,7 +48,7 @@ variables:
 
   service_principal_name:
     description: "Service principal name used for app access (must match the service principal created in the workspace)."
-    default: "app-monitoring"
+    default: "c8bca427-1937-4608-9b67-44c9f9c80ead"
 
   cluster_name:
     description: "Base name for the shared, named cluster used by monitoring jobs (suffixed with target)."

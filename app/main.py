@@ -31,3 +31,12 @@ def api_hello() -> str:
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/sample")
+def sample() -> dict:
+    return {
+        "status": "ok",
+        "message": "Hello from API sample",
+        "path": "/api/sample",
+    }
