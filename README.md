@@ -151,6 +151,52 @@ Examples:
 - AWS: `--var="node_type_id=t3.medium"`
 - GCP: `--var="node_type_id=n2-standard-4"`
 
+### Test artifact storage (PDF reports)
+
+The monitoring job saves PDF screenshots and a JSON summary to a Unity Catalog volume using the Databricks SDK Files API (`workspace.files`).
+
+**Configuration:**
+
+- `artifacts_volume_path` - UC volume path for test artifacts (default: `/Volumes/data/playwright/results`)
+- Set to empty string to disable artifact storage
+
+**Output structure:**
+
+```
+/Volumes/data/playwright/results/
+  2025-02-23_14-30-00-run-12345/
+    landing-page.pdf
+    api-endpoint.pdf
+    summary.json
+```
+
+Each test run creates a timestamped folder containing:
+- `landing-page.pdf` - PDF screenshot of the landing page
+- `api-endpoint.pdf` - PDF screenshot of the API response
+- `summary.json` - Test results metadata (status, URLs, timestamps)
+
+**Prerequisites:**
+
+1. Create the schema and volume in Unity Catalog:
+   ```sql
+   CREATE SCHEMA IF NOT EXISTS data.playwright;
+   CREATE VOLUME IF NOT EXISTS data.playwright.results;
+   ```
+
+2. Ensure the service principal has write access to the volume.
+
+**Override the path:**
+
+```bash
+databricks bundle deploy -t dev --var="artifacts_volume_path=/Volumes/my_catalog/my_schema/my_volume"
+```
+
+To disable artifact storage:
+
+```bash
+databricks bundle deploy -t dev --var="artifacts_volume_path="
+```
+
 ### Secret scope and authentication
 
 - The bundle creates `resources.secret_scopes.app_oauth_scope`.

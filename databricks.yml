@@ -85,6 +85,11 @@ variables:
     description: "Timezone for the monitoring job schedule."
     default: "UTC"
 
+  # Artifact storage
+  artifacts_volume_path:
+    description: "UC volume path for test artifacts (e.g., /Volumes/data/playwright/results). Leave empty to disable."
+    default: "/Volumes/data/playwright/results"
+
 targets:
   dev:
     default: true

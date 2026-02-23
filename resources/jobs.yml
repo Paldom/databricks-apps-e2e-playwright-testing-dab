@@ -28,6 +28,7 @@ resources:
               api_path: "${var.api_route_path}"
               expected_header_text: "${var.expected_header_text}"
               expected_api_message: "${var.expected_api_message}"
+              artifacts_volume_path: "${var.artifacts_volume_path}"
 
     # 2) E2E test job: runs the monitoring job.
     e2e_test_job:
