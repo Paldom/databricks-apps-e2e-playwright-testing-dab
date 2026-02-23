@@ -11,6 +11,11 @@ resources:
       node_type_id: "${var.node_type_id}"
       driver_node_type_id: "${var.node_type_id}"
 
+      # Custom container with Playwright + Chromium pre-installed.
+      # See: https://docs.databricks.com/aws/en/compute/custom-containers
+      docker_image:
+        url: "${var.docker_image_url}"
+
       spark_conf:
         spark.databricks.cluster.profile: singleNode
         spark.master: local[*]

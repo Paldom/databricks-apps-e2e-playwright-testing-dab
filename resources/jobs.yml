@@ -1,16 +1,7 @@
 resources:
   jobs:
-    # 1) Ephemeral install job: installs Playwright + Chromium onto the named cluster.
-    #    Run manually or in CI whenever the cluster was restarted / recreated.
-    install_playwright_job:
-      name: "${bundle.name}-install-playwright-${bundle.target}"
-      tasks:
-        - task_key: install
-          existing_cluster_id: ${resources.clusters.monitoring_cluster.id}
-          notebook_task:
-            notebook_path: ../src/install_playwright.ipynb
-
-    # 2) Monitoring job: Playwright healthcheck against the app URL.
+    # 1) Monitoring job: Playwright healthcheck against the app URL.
+    #    Uses a custom container with Playwright + Chromium pre-installed.
     monitor_app_job:
       name: "${bundle.name}-monitor-app-${bundle.target}"
       parameters:
@@ -26,14 +17,7 @@ resources:
       max_concurrent_runs: 1
 
       tasks:
-        - task_key: bootstrap_playwright_runtime
-          existing_cluster_id: ${resources.clusters.monitoring_cluster.id}
-          notebook_task:
-            notebook_path: ../src/install_playwright.ipynb
-
         - task_key: playwright_healthcheck
-          depends_on:
-            - task_key: bootstrap_playwright_runtime
           existing_cluster_id: ${resources.clusters.monitoring_cluster.id}
           notebook_task:
             notebook_path: ../src/playwright_test.ipynb
@@ -45,7 +29,7 @@ resources:
               expected_header_text: "${var.expected_header_text}"
               expected_api_message: "${var.expected_api_message}"
 
-    # 3) E2E test job: runs the monitoring job.
+    # 2) E2E test job: runs the monitoring job.
     e2e_test_job:
       name: "${bundle.name}-e2e-${bundle.target}"
       tasks:

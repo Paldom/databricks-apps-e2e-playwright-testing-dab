@@ -50,6 +50,11 @@ variables:
     description: "Secret scope used for OAuth credentials."
     default: "app-monitoring-secrets"
 
+  # Custom container image with Playwright + Chromium pre-installed.
+  docker_image_url:
+    description: "Docker image URL (Docker Hub) for the Playwright container."
+    default: "dpal/playwright-databricks:1.0"
+
   service_principal_name:
     description: "Service principal name used for app access (must match the service principal created in the workspace)."
     default: "c8bca427-1937-4608-9b67-44c9f9c80ead"

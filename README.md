@@ -4,25 +4,51 @@ E2E monitoring and auto-testing for Databricks Apps: scheduled Playwright test i
 
 This repo is a minimal **Databricks Asset Bundles (DABs)** project that deploys:
 
-1) A **Databricks App** (FastAPI) with UI (`/`) plus API routes under `/api/*` (including `/api/sample`)  
-2) A **Lakeflow Job** (Databricks Workflows job) that runs a **Playwright** browser test notebook against an app `/api/*` route  
-3) Two extra **ephemeral jobs**:
-   - install Playwright + Chromium onto the named cluster from a notebook
-   - run an E2E workflow that calls the monitor job via `run_job_task`
+1) A **Databricks App** (FastAPI) with UI (`/`) plus API routes under `/api/*` (including `/api/sample`)
+2) A **Lakeflow Job** (Databricks Workflows job) that runs a **Playwright** browser test notebook against an app `/api/*` route
+3) A **custom Docker container** (`dpal/playwright-databricks:1.0`) with Playwright + Chromium pre-installed
+4) An **E2E wrapper job** that calls the monitor job via `run_job_task`
 
 ## Project layout
 
 - `databricks.yml` – bundle root config
 - `resources/` – bundle resources (app, cluster, jobs, secret scope)
 - `app/` – Databricks App source code (`app.yaml`, `requirements.txt`, `main.py`)
-- `src/` – notebooks used by the jobs (`install_playwright.ipynb`, `playwright_test.ipynb`)
+- `src/` – notebooks used by the jobs (`playwright_test.ipynb`)
+- `container/` – Dockerfile for the Playwright container image
 - `.github/workflows/bundle.yml` – minimal CI/CD
 
 ## Local usage
 
-### Prerequisite
+### Prerequisites
 
 - Databricks CLI `v0.252.0` or above (required for `resources.secret_scopes`)
+- **Databricks Container Services** must be enabled in the workspace (required for custom Docker images)
+
+#### Enable Databricks Container Services
+
+A workspace admin must enable Container Services before deploying. Use the Databricks CLI:
+
+```bash
+databricks workspace-conf set-status --json '{"enableDcs": "true"}'
+```
+
+Or enable it in the workspace admin settings UI. See [Databricks Container Services documentation](https://docs.databricks.com/en/compute/custom-containers.html) for details.
+
+#### Docker image
+
+This project uses a pre-built Docker image with Playwright + Chromium:
+
+```
+dpal/playwright-databricks:1.0
+```
+
+The image is based on `databricksruntime/standard:16.4-LTS` and includes:
+- Playwright Python package
+- Chromium browser with system dependencies
+- databricks-sdk
+
+To use a custom image, override the `docker_image_url` variable or build your own from `container/Dockerfile`.
 
 ### 1) Create the service principal and generate OAuth credentials
 
@@ -78,23 +104,15 @@ permissions:
 
 Apply it with deploy/redeploy, then verify in the app **Permissions** UI that the configured service principal has `CAN_USE`.
 
-### 6) (Optional) Pre-install Playwright runtime on the monitoring cluster
-
-```bash
-databricks bundle run -t dev install_playwright_job
-```
-
-The install notebook uses `playwright install --with-deps chromium` to install both Chromium and required Linux shared libraries.
-
-### 7) Run the monitoring job once
+### 6) Run the monitoring job once
 
 ```bash
 databricks bundle run -t dev monitor_app_job
 ```
 
-`monitor_app_job` now includes a bootstrap task that runs the install notebook before the Playwright healthcheck, so scheduled runs are resilient after cluster restarts. The healthcheck targets `/api/sample` and validates JSON payload fields.
+The monitoring job uses a custom Docker container with Playwright pre-installed, so no bootstrap/install step is required. The healthcheck validates both the landing page (`/`) and the API endpoint (`/api/sample`).
 
-### 8) Run the E2E wrapper job (calls monitor job)
+### 7) Run the E2E wrapper job (calls monitor job)
 
 ```bash
 databricks bundle run -t dev e2e_test_job
