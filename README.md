@@ -18,7 +18,7 @@ This repo is a minimal **Databricks Asset Bundles (DABs)** project that deploys:
 - `container/` – Dockerfile for the Playwright container image
 - `.github/workflows/bundle.yml` – minimal CI/CD
 
-## Local usage
+## Usage
 
 ### Prerequisites
 
