@@ -42,9 +42,10 @@ resources:
               app_url: "${resources.apps.hello-world-app.name}"
               scope: "{{job.parameters.scope}}"
               api_path: "${var.api_route_path}"
+              expected_header_text: "${var.expected_header_text}"
               expected_api_message: "${var.expected_api_message}"
 
-    # 3) Ephemeral "test the test" job: delegates to monitor_app_job.
+    # 3) E2E test job: runs the monitoring job.
     e2e_test_job:
       name: "${bundle.name}-e2e-${bundle.target}"
       tasks:

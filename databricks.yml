@@ -32,6 +32,10 @@ variables:
     description: "API route validated by the Playwright monitoring notebook (must start with /api/)."
     default: "/api/sample"
 
+  expected_header_text:
+    description: "Expected h1 text on the landing page."
+    default: "Hello World"
+
   expected_api_message:
     description: "Expected JSON message value returned by the monitored API route."
     default: "Hello from API sample"
